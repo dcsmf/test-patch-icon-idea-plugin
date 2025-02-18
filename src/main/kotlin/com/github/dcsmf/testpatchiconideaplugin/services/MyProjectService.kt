@@ -1,17 +1,37 @@
 package com.github.dcsmf.testpatchiconideaplugin.services
 
+import com.github.dcsmf.testpatchiconideaplugin.patchers.MyIconPatchers
+import com.intellij.ide.projectView.ProjectView
+import com.intellij.ide.ui.LafManager
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.github.dcsmf.testpatchiconideaplugin.MyBundle
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.IconLoader
 
-@Service(Service.Level.PROJECT)
-class MyProjectService(project: Project) {
+@Service(Service.Level.APP)
+class MyProjectService {
 
     init {
-        thisLogger().info(MyBundle.message("projectService", project.name))
-        thisLogger().warn("Don't forget to remove all non-needed sample code files with their corresponding registration entries in `plugin.xml`.")
+        IconLoader.installPathPatcher(MyIconPatchers.instance)
     }
 
-    fun getRandomNumber() = (1..100).random()
+    fun patchIcon():Boolean {
+        IconLoader.clearCache()
+        MyIconPatchers.instance.enable = !MyIconPatchers.instance.enable
+        LafManager.getInstance().updateUI()
+        val projects: Array<Project> = ProjectManager.getInstance().openProjects
+        for (project in projects) refresh(project)
+        return MyIconPatchers.instance.enable
+    }
+
+    private fun refresh(project: Project?) {
+        if (project != null) {
+            val view = ProjectView.getInstance(project)
+            if (view != null) {
+                view.refresh()
+                if (view.currentProjectViewPane != null) view.currentProjectViewPane.updateFromRoot(true)
+            }
+        }
+    }
+
 }
